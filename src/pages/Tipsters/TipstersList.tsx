@@ -194,27 +194,48 @@ export default function TipstersList() {
       setError('Please fill in all required fields.');
       return;
     }
-    if (!isEditWeeklyValid) {
+    // Only validate amounts if they are provided (not empty)
+    if (editTipsterWeeklyAmount !== '' && !isEditWeeklyValid) {
       setError(`Weekly subscription amount must be greater than 0 and not exceed ${WEEKLY_LIMIT.toLocaleString()} /=.`);
       return;
     }
-    if (!isEditMonthlyValid) {
+    if (editTipsterMonthlyAmount !== '' && !isEditMonthlyValid) {
       setError(`Monthly subscription amount must be greater than 0 and not exceed ${MONTHLY_LIMIT.toLocaleString()} /=.`);
       return;
     }
-    if (parsedEditMonthly <= parsedEditWeekly) {
+    // Only validate monthly > weekly if both are provided
+    if (editTipsterWeeklyAmount !== '' && editTipsterMonthlyAmount !== '' && parsedEditMonthly <= parsedEditWeekly) {
       setError('Monthly subscription amount must be greater than the weekly amount.');
       return;
     }
     setEditTipsterLoading(true);
     try {
-      await apiService.updateTipster(selectedTipster.id, {
+      const updateData: {
+        name: string;
+        phone_number: string;
+        commission_config_id?: number | null;
+        weekly_subscription_amount?: number | null;
+        monthly_subscription_amount?: number | null;
+      } = {
         name: editTipsterName,
         phone_number: editTipsterPhone,
         commission_config_id: editCommissionConfigId,
-        weekly_subscription_amount: parsedEditWeekly,
-        monthly_subscription_amount: parsedEditMonthly,
-      });
+      };
+
+      // Only include amounts if they are provided and valid, or explicitly set to null
+      if (editTipsterWeeklyAmount !== '' && isEditWeeklyValid) {
+        updateData.weekly_subscription_amount = parsedEditWeekly;
+      } else if (editTipsterWeeklyAmount === '') {
+        updateData.weekly_subscription_amount = null;
+      }
+
+      if (editTipsterMonthlyAmount !== '' && isEditMonthlyValid) {
+        updateData.monthly_subscription_amount = parsedEditMonthly;
+      } else if (editTipsterMonthlyAmount === '') {
+        updateData.monthly_subscription_amount = null;
+      }
+
+      await apiService.updateTipster(selectedTipster.id, updateData);
       setShowEditModal(false);
       setSelectedTipster(null);
       setEditTipsterName('');
@@ -1022,10 +1043,9 @@ export default function TipstersList() {
                       editTipsterLoading ||
                       !editTipsterName.trim() ||
                       !editTipsterPhone.trim() ||
-                      !editCommissionConfigId ||
-                      !isEditWeeklyValid ||
-                      !isEditMonthlyValid ||
-                      parsedEditMonthly <= parsedEditWeekly
+                      (editTipsterWeeklyAmount !== '' && !isEditWeeklyValid) ||
+                      (editTipsterMonthlyAmount !== '' && !isEditMonthlyValid) ||
+                      (editTipsterWeeklyAmount !== '' && editTipsterMonthlyAmount !== '' && parsedEditMonthly <= parsedEditWeekly)
                     }
                     className="flex items-center gap-2"
                   >

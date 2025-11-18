@@ -129,11 +129,15 @@ export default function CustomersList() {
     });
   };
 
-  const formatCurrency = (amount: number, currency: string) => {
-    return new Intl.NumberFormat('en-US', {
-      style: 'currency',
-      currency: currency || 'USD'
-    }).format(amount);
+  const formatCurrency = (amount: number | string | null | undefined) => {
+    const normalizedAmount = typeof amount === 'string' ? parseFloat(amount) : amount;
+    if (normalizedAmount === null || normalizedAmount === undefined || isNaN(normalizedAmount)) {
+      return 'TZS 0';
+    }
+    return `TZS ${normalizedAmount.toLocaleString('en-US', {
+      minimumFractionDigits: 0,
+      maximumFractionDigits: 2,
+    })}`;
   };
 
   const getPlanTypeBadge = (planType: string) => {
@@ -187,7 +191,7 @@ export default function CustomersList() {
 
       {/* Add Customer Form */}
       {showAddForm && (
-        <div className="mb-8 p-6 bg-white rounded-xl border border-gray-200 dark.bg-gray-800 dark:border-gray-700">
+        <div className="mb-8 p-6 bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700">
           <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
             Add New Customer
           </h3>
@@ -434,7 +438,7 @@ export default function CustomersList() {
                     <div className="flex items-center">
                       <DollarLineIcon className="h-4 w-4 text-green-600 mr-1" />
                       <span className="text-sm font-medium text-gray-900 dark:text-white">
-                        $0
+                        {formatCurrency(0)}
                       </span>
                     </div>
                   </td>
@@ -663,7 +667,7 @@ export default function CustomersList() {
                           {getStatusBadge(subscription.status === 'active')}
                         </td>
                         <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-900 dark:text-white">
-                          {formatCurrency(subscription.price, subscription.currency)}
+                          {formatCurrency(subscription.price)}
                         </td>
                         <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-900 dark:text-white">
                           {formatDate(subscription.start_at)}
