@@ -1039,6 +1039,7 @@ export default function TipstersList() {
 
                 <div className="flex space-x-3">
                   <Button 
+                    type="submit"
                     disabled={
                       editTipsterLoading ||
                       !editTipsterName.trim() ||
