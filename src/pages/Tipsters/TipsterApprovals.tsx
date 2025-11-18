@@ -1,7 +1,8 @@
 import { useEffect, useState, useCallback } from "react";
 import { apiService, Tipster } from "../../services/api";
 import PageMeta from "../../components/common/PageMeta";
-import { UserCircleIcon, EyeIcon } from "../../icons";
+import { UserCircleIcon } from "../../icons";
+import { FaEye, FaCheckCircle, FaTimes } from "react-icons/fa";
 import Badge from "../../components/ui/badge/Badge";
 import Button from "../../components/ui/button/Button";
 import Input from "../../components/form/input/InputField";
@@ -15,6 +16,7 @@ export default function TipsterApprovals() {
   const [tipsters, setTipsters] = useState<Tipster[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState("");
+  const [success, setSuccess] = useState("");
   const [searchTerm, setSearchTerm] = useState("");
   const [pagination, setPagination] = useState({
     current_page: 1,
@@ -80,11 +82,52 @@ export default function TipsterApprovals() {
     setShowIdDocumentModal(true);
     setLoadingIdDocument(true);
     setIdDocumentUrl(null);
+    setError('');
 
     try {
       const response = await apiService.getTipsterIdDocument(tipster.id);
       if (response.id_document) {
-        setIdDocumentUrl(response.id_document);
+        // Ensure the base64 string has the proper data URI prefix
+        let imageUrl = response.id_document.trim();
+        
+        // If it doesn't start with data:, assume it's raw base64 and add the prefix
+        if (!imageUrl.startsWith('data:')) {
+          // Remove any whitespace
+          const cleanBase64 = imageUrl.replace(/\s/g, '');
+          
+          // Try to detect image type from base64 string patterns
+          // JPEG base64 typically starts with /9j/ (after encoding FF D8 FF)
+          // PNG base64 typically starts with iVBORw0KGgo (after encoding 89 50 4E 47)
+          if (cleanBase64.startsWith('/9j/') || cleanBase64.match(/^\/9j\//)) {
+            imageUrl = `data:image/jpeg;base64,${cleanBase64}`;
+          } else if (cleanBase64.startsWith('iVBORw0KGgo') || cleanBase64.match(/^iVBORw0KGgo/)) {
+            imageUrl = `data:image/png;base64,${cleanBase64}`;
+          } else {
+            // Try to detect by decoding first few bytes
+            try {
+              const decoded = atob(cleanBase64.substring(0, Math.min(8, cleanBase64.length)));
+              const bytes = Array.from(decoded, char => char.charCodeAt(0));
+              
+              // JPEG: FF D8 FF
+              if (bytes[0] === 0xFF && bytes[1] === 0xD8 && bytes[2] === 0xFF) {
+                imageUrl = `data:image/jpeg;base64,${cleanBase64}`;
+              }
+              // PNG: 89 50 4E 47
+              else if (bytes[0] === 0x89 && bytes[1] === 0x50 && bytes[2] === 0x4E && bytes[3] === 0x47) {
+                imageUrl = `data:image/png;base64,${cleanBase64}`;
+              }
+              // Default to jpeg
+              else {
+                imageUrl = `data:image/jpeg;base64,${cleanBase64}`;
+              }
+            } catch (e) {
+              // If all detection fails, default to jpeg
+              imageUrl = `data:image/jpeg;base64,${cleanBase64}`;
+            }
+          }
+        }
+        
+        setIdDocumentUrl(imageUrl);
       } else {
         setError('ID document not found for this tipster');
       }
@@ -113,18 +156,26 @@ export default function TipsterApprovals() {
 
     setActionLoading(true);
     setError('');
+    setSuccess('');
     
     try {
       if (actionType === 'approve') {
-        await apiService.approveTipster(selectedTipster.id, actionNotes || 'Approved by admin');
+        await apiService.approveTipster(selectedTipster.id, actionNotes.trim() || undefined);
+        setSuccess('Tipster approved successfully!');
       } else {
-        await apiService.rejectTipster(selectedTipster.id, actionNotes);
+        await apiService.rejectTipster(selectedTipster.id, actionNotes.trim());
+        setSuccess('Tipster rejected successfully!');
       }
       
       setShowActionModal(false);
       setSelectedTipster(null);
       setActionNotes('');
+      setError('');
+      // Refresh the list to show updated status
       fetchTipsters(pagination.current_page);
+      
+      // Clear success message after 3 seconds
+      setTimeout(() => setSuccess(''), 3000);
     } catch (err: any) {
       setError(err.message || `Failed to ${actionType} tipster`);
     } finally {
@@ -159,6 +210,7 @@ export default function TipsterApprovals() {
     setActiveTab(tab);
     setPagination(prev => ({ ...prev, current_page: 1 }));
     setError('');
+    setSuccess('');
   };
 
   const tabs = [
@@ -183,6 +235,20 @@ export default function TipsterApprovals() {
             </p>
           </div>
         </div>
+
+        {/* Success Message */}
+        {success && (
+          <div className="p-4 bg-green-50 border border-green-200 rounded-lg dark:bg-green-900/20 dark:border-green-800">
+            <p className="text-green-600 dark:text-green-400">{success}</p>
+          </div>
+        )}
+
+        {/* Error Message */}
+        {error && (
+          <div className="p-4 bg-red-50 border border-red-200 rounded-lg dark:bg-red-900/20 dark:border-red-800">
+            <p className="text-red-600 dark:text-red-400">{error}</p>
+          </div>
+        )}
 
         {/* Tabs */}
         <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-1">
@@ -362,23 +428,31 @@ export default function TipsterApprovals() {
                                   size="sm"
                                   variant="outline"
                                   onClick={() => handleViewIdDocument(tipster)}
+                                  className="flex items-center justify-center"
+                                  title="View ID Document"
                                 >
-                                  <EyeIcon className="w-4 h-4 mr-1" />
-                                  View ID
+                                  <FaEye className="w-4 h-4" />
+                                  <span className="sr-only">View ID Document</span>
                                 </Button>
                                 <Button
                                   size="sm"
                                   variant="success"
                                   onClick={() => handleAction(tipster, 'approve')}
+                                  className="flex items-center justify-center"
+                                  title="Approve Tipster"
                                 >
-                                  Approve
+                                  <FaCheckCircle className="w-4 h-4" />
+                                  <span className="sr-only">Approve</span>
                                 </Button>
                                 <Button
                                   size="sm"
                                   variant="danger"
                                   onClick={() => handleAction(tipster, 'reject')}
+                                  className="flex items-center justify-center"
+                                  title="Reject Tipster"
                                 >
-                                  Reject
+                                  <FaTimes className="w-4 h-4" />
+                                  <span className="sr-only">Reject</span>
                                 </Button>
                               </>
                             )}
@@ -387,9 +461,11 @@ export default function TipsterApprovals() {
                                 size="sm"
                                 variant="outline"
                                 onClick={() => handleViewIdDocument(tipster)}
+                                className="flex items-center justify-center"
+                                title="View ID Document"
                               >
-                                <EyeIcon className="w-4 h-4 mr-1" />
-                                View ID
+                                <FaEye className="w-4 h-4" />
+                                <span className="sr-only">View ID Document</span>
                               </Button>
                             )}
                             {tipster.status === 'rejected' && (
@@ -397,9 +473,11 @@ export default function TipsterApprovals() {
                                 size="sm"
                                 variant="outline"
                                 onClick={() => handleViewIdDocument(tipster)}
+                                className="flex items-center justify-center"
+                                title="View ID Document"
                               >
-                                <EyeIcon className="w-4 h-4 mr-1" />
-                                View ID
+                                <FaEye className="w-4 h-4" />
+                                <span className="sr-only">View ID Document</span>
                               </Button>
                             )}
                           </div>
@@ -411,7 +489,7 @@ export default function TipsterApprovals() {
               </div>
 
               {/* Pagination */}
-              {pagination.last_page > 1 && (
+              {pagination.total > 0 && (
                 <div className="px-6 py-3 bg-gray-50 dark:bg-gray-700 border-t border-gray-200 dark:border-gray-600">
                   <div className="flex items-center justify-between">
                     <div className="text-sm text-gray-700 dark:text-gray-300">
@@ -419,24 +497,34 @@ export default function TipsterApprovals() {
                       {Math.min(pagination.current_page * pagination.per_page, pagination.total)} of{' '}
                       {pagination.total} tipsters
                     </div>
-                    <div className="flex space-x-2">
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        disabled={pagination.current_page === 1}
-                        onClick={() => fetchTipsters(pagination.current_page - 1)}
-                      >
-                        Previous
-                      </Button>
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        disabled={pagination.current_page === pagination.last_page}
-                        onClick={() => fetchTipsters(pagination.current_page + 1)}
-                      >
-                        Next
-                      </Button>
-                    </div>
+                    {pagination.last_page > 1 && (
+                      <div className="flex space-x-2">
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          disabled={pagination.current_page === 1 || isLoading}
+                          onClick={() => {
+                            const newPage = pagination.current_page - 1;
+                            setPagination(prev => ({ ...prev, current_page: newPage }));
+                            fetchTipsters(newPage, activeTab);
+                          }}
+                        >
+                          Previous
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          disabled={pagination.current_page === pagination.last_page || isLoading}
+                          onClick={() => {
+                            const newPage = pagination.current_page + 1;
+                            setPagination(prev => ({ ...prev, current_page: newPage }));
+                            fetchTipsters(newPage, activeTab);
+                          }}
+                        >
+                          Next
+                        </Button>
+                      </div>
+                    )}
                   </div>
                 </div>
               )}
@@ -473,11 +561,16 @@ export default function TipsterApprovals() {
               <div className="space-y-4">
                 <div className="bg-gray-100 dark:bg-gray-700 rounded-lg p-4 flex items-center justify-center min-h-[400px]">
                   <img
-                    src={idDocumentUrl}
+                    src={idDocumentUrl || ''}
                     alt="ID Document"
                     className="max-w-full max-h-[600px] object-contain rounded"
-                    onError={() => {
+                    onError={(e) => {
+                      console.error('Image load error:', e);
                       setError('Failed to load image. The image may be corrupted or in an unsupported format.');
+                      setIdDocumentUrl(null);
+                    }}
+                    onLoad={() => {
+                      setError('');
                     }}
                   />
                 </div>
@@ -568,8 +661,12 @@ export default function TipsterApprovals() {
                 Cancel
               </Button>
               <Button
+                type="button"
                 variant={actionType === 'approve' ? 'success' : 'danger'}
-                onClick={handleActionSubmit}
+                onClick={(e) => {
+                  e.preventDefault();
+                  handleActionSubmit();
+                }}
                 disabled={actionLoading || (actionType === 'reject' && !actionNotes.trim())}
               >
                 {actionLoading ? (

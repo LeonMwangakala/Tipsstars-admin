@@ -247,13 +247,18 @@ class ApiService {
   }
 
   async approveTipster(tipsterId: number, adminNotes?: string): Promise<{ message: string; tipster: any }> {
+    const body: { admin_notes?: string } = {};
+    if (adminNotes) {
+      body.admin_notes = adminNotes;
+    }
+    
     const response = await fetch(`${API_BASE_URL}/admin/tipsters/${tipsterId}/approve`, {
       method: 'PATCH',
       headers: {
         ...this.getAuthHeaders(),
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify({ admin_notes: adminNotes }),
+      body: JSON.stringify(body),
     });
     return this.handleResponse<{ message: string; tipster: any }>(response);
   }
@@ -565,6 +570,30 @@ class ApiService {
   }
 
   // Notifications
+  async getNotifications(): Promise<{ 
+    notifications: Array<{
+      id: string;
+      type: string;
+      title: string;
+      message: string;
+      link: string;
+      created_at: string;
+      icon: string;
+      color: string;
+    }>;
+    counts: {
+      pending_tipsters: number;
+      pending_withdrawals: number;
+      total: number;
+    };
+  }> {
+    const response = await fetch(`${API_BASE_URL}/admin/notifications`, {
+      method: 'GET',
+      headers: this.getAuthHeaders(),
+    });
+    return this.handleResponse(response);
+  }
+
   async sendNotification(data: { 
     type: 'tipster' | 'customer' | 'all';
     user_ids?: number[];
@@ -757,28 +786,33 @@ class ApiService {
     return this.handleResponse(response);
   }
 
-  async markWithdrawalPaid(withdrawalId: number, notes?: string): Promise<void> {
+  async markWithdrawalPaid(withdrawalId: number, notes?: string): Promise<{ message: string; data: any }> {
+    const body: { notes?: string } = {};
+    if (notes && notes.trim()) {
+      body.notes = notes.trim();
+    }
+    
     const response = await fetch(`${API_BASE_URL}/admin/withdrawals/${withdrawalId}/mark-paid`, {
       method: 'PATCH',
       headers: {
         ...this.getAuthHeaders(),
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify({ notes }),
+      body: JSON.stringify(body),
     });
-    return this.handleResponse(response);
+    return this.handleResponse<{ message: string; data: any }>(response);
   }
 
-  async rejectWithdrawal(withdrawalId: number, notes: string): Promise<void> {
+  async rejectWithdrawal(withdrawalId: number, notes: string): Promise<{ message: string; data: any }> {
     const response = await fetch(`${API_BASE_URL}/admin/withdrawals/${withdrawalId}/reject`, {
       method: 'PATCH',
       headers: {
         ...this.getAuthHeaders(),
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify({ notes }),
+      body: JSON.stringify({ notes: notes.trim() }),
     });
-    return this.handleResponse(response);
+    return this.handleResponse<{ message: string; data: any }>(response);
   }
 
   async getWithdrawalStats(): Promise<{
