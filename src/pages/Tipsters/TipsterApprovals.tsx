@@ -377,7 +377,7 @@ export default function TipsterApprovals() {
                   ? 'Add any notes about this approval...' 
                   : 'Please provide a reason for rejection...'}
                 value={actionNotes}
-                onChange={(e) => setActionNotes(e.target.value)}
+                onChange={(value) => setActionNotes(value)}
                 rows={4}
                 required={actionType === 'reject'}
               />

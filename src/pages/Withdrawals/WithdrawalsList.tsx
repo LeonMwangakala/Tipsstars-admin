@@ -4,7 +4,6 @@ import PageMeta from '../../components/common/PageMeta';
 import Badge from '../../components/ui/badge/Badge';
 import Button from '../../components/ui/button/Button';
 import Input from '../../components/form/input/InputField';
-import ComponentCard from '../../components/common/ComponentCard';
 
 interface WithdrawalRequest {
   id: number;

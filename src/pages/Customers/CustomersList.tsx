@@ -1,4 +1,4 @@
-import { useEffect, useState, useRef } from "react";
+import React, { useEffect, useState } from "react";
 import { apiService, Customer } from "../../services/api";
 import PageMeta from "../../components/common/PageMeta";
 import { UserIcon, CalenderIcon, DollarLineIcon } from "../../icons";
@@ -300,7 +300,7 @@ export default function CustomersList() {
               placeholder="Search by name or phone number..."
               value={searchText}
               onChange={(e) => setSearchText(e.target.value)}
-              onKeyPress={(e) => e.key === 'Enter' && handleSearch()}
+              onKeyPress={(e: React.KeyboardEvent<HTMLInputElement>) => e.key === 'Enter' && handleSearch()}
             />
           </div>
           

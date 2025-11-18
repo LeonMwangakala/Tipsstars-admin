@@ -431,7 +431,7 @@ export default function SubscriptionsList() {
               placeholder="Search by customer or tipster..."
               value={searchText}
               onChange={(e) => setSearchText(e.target.value)}
-              onKeyPress={(e) => e.key === 'Enter' && handleSearch()}
+              onKeyPress={(e: React.KeyboardEvent<HTMLInputElement>) => e.key === 'Enter' && handleSearch()}
             />
           </div>
           

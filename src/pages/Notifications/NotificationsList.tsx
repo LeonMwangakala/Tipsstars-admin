@@ -1,8 +1,7 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { apiService } from "../../services/api";
 import PageMeta from "../../components/common/PageMeta";
-import { ChatIcon, UserIcon, ArrowRightIcon } from "../../icons";
-import Badge from "../../components/ui/badge/Badge";
+import { ChatIcon, ArrowRightIcon } from "../../icons";
 import Button from "../../components/ui/button/Button";
 import Input from "../../components/form/input/InputField";
 

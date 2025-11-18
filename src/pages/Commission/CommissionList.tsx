@@ -209,7 +209,7 @@ export default function CommissionList() {
                 </label>
                 <Input
                   type="number"
-                  step="0.01"
+                  step={0.01}
                   min="0"
                   max="100"
                   placeholder="15.00"

@@ -105,10 +105,12 @@ export interface Subscription {
   tipster?: {
     id: number;
     name: string;
+    phone_number?: string;
   };
   user?: {
     id: number;
     name: string;
+    phone_number?: string;
   };
   commission_config?: CommissionConfig;
 }
@@ -120,6 +122,9 @@ export interface DashboardStats {
   success_rate: number;
   weekly_predictions: any[];
   subscription_trends: any[];
+  total_commission?: number;
+  total_tipster_earnings?: number;
+  active_commission_configs?: number;
 }
 
 export interface AdminUser {
@@ -384,17 +389,19 @@ class ApiService {
   async updatePrediction(predictionId: number, data: Partial<Prediction> | FormData): Promise<{ message: string; prediction: Prediction }> {
     const isFormData = data instanceof FormData;
     
-    const headers = this.getAuthHeaders();
-    if (!isFormData) {
-      headers['Content-Type'] = 'application/json';
-    }
-
     // For FormData with file uploads, use POST with _method=PATCH
     if (isFormData) {
       (data as FormData).append('_method', 'PATCH');
+      const authHeaders = this.getAuthHeaders();
+      const headers: HeadersInit = {
+        ...(typeof authHeaders === 'object' && !Array.isArray(authHeaders) ? authHeaders : {}),
+        // Remove Content-Type to let browser set it with boundary for FormData
+      };
+      delete (headers as Record<string, string>)['Content-Type'];
+      
       const response = await fetch(`${API_BASE_URL}/admin/predictions/${predictionId}`, {
         method: 'POST',
-        headers: headers as HeadersInit,
+        headers,
         body: data as FormData,
       });
       return this.handleResponse<{ message: string; prediction: Prediction }>(response);
@@ -402,7 +409,7 @@ class ApiService {
 
     const response = await fetch(`${API_BASE_URL}/admin/predictions/${predictionId}`, {
       method: 'PATCH',
-      headers: headers as HeadersInit,
+      headers: this.getAuthHeaders(),
       body: JSON.stringify(data),
     });
     return this.handleResponse<{ message: string; prediction: Prediction }>(response);
@@ -777,6 +784,31 @@ class ApiService {
       headers: this.getAuthHeaders(),
     });
     return this.handleResponse(response);
+  }
+
+  // Profile management
+  async updateProfile(data: { name?: string; phone_number?: string; email?: string }): Promise<{ message: string; user: AdminUser }> {
+    const response = await fetch(`${API_BASE_URL}/profile`, {
+      method: 'PATCH',
+      headers: {
+        ...this.getAuthHeaders(),
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(data),
+    });
+    return this.handleResponse<{ message: string; user: AdminUser }>(response);
+  }
+
+  async updateProfileImage(profileImage: string): Promise<{ message: string; user: AdminUser }> {
+    const response = await fetch(`${API_BASE_URL}/profile/image`, {
+      method: 'POST',
+      headers: {
+        ...this.getAuthHeaders(),
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ profile_image: profileImage }),
+    });
+    return this.handleResponse<{ message: string; user: AdminUser }>(response);
   }
 }
 
