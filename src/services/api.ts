@@ -1,5 +1,20 @@
-const API_BASE_URL = 'https://api.tipsstars.com/api';
-export const API_ORIGIN = 'https://api.tipsstars.com';
+// Get API URL from environment variable, fallback to production URL
+const getApiBaseUrl = (): string => {
+  // Vite exposes env variables with VITE_ prefix
+  return import.meta.env.VITE_API_BASE_URL || 'https://api.tipsstars.com/api';
+};
+
+const getApiOrigin = (): string => {
+  const baseUrl = getApiBaseUrl();
+  // Extract origin from base URL (remove /api if present)
+  if (baseUrl.includes('/api')) {
+    return baseUrl.replace('/api', '');
+  }
+  return baseUrl.replace(/\/$/, ''); // Remove trailing slash
+};
+
+const API_BASE_URL = getApiBaseUrl();
+export const API_ORIGIN = getApiOrigin();
 
 export interface LoginRequest {
   phone_number: string;
