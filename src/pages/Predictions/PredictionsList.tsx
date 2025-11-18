@@ -424,14 +424,14 @@ export default function PredictionsList() {
     if (!predictionToDelete) return;
     
     setIsDeleting(true);
-    try {
+      try {
       await apiService.deletePrediction(predictionToDelete.id);
       setSuccess('Prediction deleted successfully!');
       setShowDeleteModal(false);
       setPredictionToDelete(null);
-      fetchPredictions(pagination.current_page);
-    } catch (err: any) {
-      setError(err.message || "Failed to delete prediction");
+        fetchPredictions(pagination.current_page);
+      } catch (err: any) {
+        setError(err.message || "Failed to delete prediction");
     } finally {
       setIsDeleting(false);
     }
@@ -689,8 +689,8 @@ export default function PredictionsList() {
                 'Close Form'
               ) : (
                 <>
-                  <PencilIcon className="w-4 h-4" />
-                  Add Prediction
+              <PencilIcon className="w-4 h-4" />
+              Add Prediction
                 </>
               )}
             </Button>
@@ -858,7 +858,7 @@ export default function PredictionsList() {
                     Premium Prediction
                   </span>
                 </label>
-              </div>
+            </div>
 
               {/* Betting Slip Upload */}
               <div className="md:col-span-2">
@@ -874,8 +874,8 @@ export default function PredictionsList() {
                       Maximum size 5 MB. Accepted formats: JPG, PNG.
                     </p>
                   </div>
-                  <Button
-                    variant="outline"
+              <Button
+                variant="outline"
                     onClick={() => addWinningSlipInputRef.current?.click()}
                   >
                     Choose File
@@ -1127,15 +1127,15 @@ export default function PredictionsList() {
                           <PencilIcon className="w-4 h-4" />
                           <span className="sr-only">Edit</span>
                         </Button>
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          onClick={() => handleUpdateResult(prediction)}
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => handleUpdateResult(prediction)}
                           className="flex items-center gap-1"
-                        >
+                          >
                           <CheckCircleIcon className="w-4 h-4" />
                           <span className="sr-only">Update Result</span>
-                        </Button>
+                          </Button>
                         <Button
                           size="sm"
                           variant="outline"

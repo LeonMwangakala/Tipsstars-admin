@@ -1,5 +1,5 @@
-const API_BASE_URL = 'http://localhost:8000/api';
-export const API_ORIGIN = 'http://localhost:8000';
+const API_BASE_URL = 'https://api.tipsstars.com/api';
+export const API_ORIGIN = 'https://api.tipsstars.com';
 
 export interface LoginRequest {
   phone_number: string;
