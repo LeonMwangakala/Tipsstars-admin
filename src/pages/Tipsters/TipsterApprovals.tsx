@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { apiService, Tipster } from "../../services/api";
 import PageMeta from "../../components/common/PageMeta";
 import { UserCircleIcon, EyeIcon } from "../../icons";
@@ -8,7 +8,10 @@ import Input from "../../components/form/input/InputField";
 import { Modal } from "../../components/ui/modal";
 import TextArea from "../../components/form/input/TextArea";
 
+type TabType = 'pending' | 'approved' | 'rejected';
+
 export default function TipsterApprovals() {
+  const [activeTab, setActiveTab] = useState<TabType>('pending');
   const [tipsters, setTipsters] = useState<Tipster[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState("");
@@ -16,7 +19,7 @@ export default function TipsterApprovals() {
   const [pagination, setPagination] = useState({
     current_page: 1,
     last_page: 1,
-    per_page: 10,
+    per_page: 15,
     total: 0,
   });
   
@@ -33,26 +36,44 @@ export default function TipsterApprovals() {
   const [actionNotes, setActionNotes] = useState('');
   const [actionLoading, setActionLoading] = useState(false);
 
-  const fetchTipsters = async (page = 1) => {
+  const fetchTipsters = useCallback(async (page = 1, status?: TabType) => {
     try {
       setIsLoading(true);
+      setError('');
+      
+      const statusToFetch = status || activeTab;
+      const statusMap: Record<TabType, string> = {
+        pending: 'pending',
+        approved: 'approved',
+        rejected: 'rejected',
+      };
+      
       const response = await apiService.getTipsters({
         page,
         search: searchTerm || undefined,
-        status: 'pending', // Only fetch pending tipsters
+        status: statusMap[statusToFetch],
       });
+      
       setTipsters(response.data);
       setPagination(response.pagination);
     } catch (err: any) {
-      setError(err.message || "Failed to load pending tipsters");
+      setError(err.message || "Failed to load tipsters");
+      setTipsters([]);
+      setPagination({
+        current_page: 1,
+        last_page: 1,
+        per_page: 15,
+        total: 0,
+      });
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [activeTab, searchTerm]);
 
   useEffect(() => {
-    fetchTipsters();
-  }, [searchTerm]);
+    // Reset to page 1 when tab or search changes and fetch data
+    fetchTipsters(1, activeTab);
+  }, [activeTab, searchTerm, fetchTipsters]);
 
   const handleViewIdDocument = async (tipster: Tipster) => {
     setSelectedTipsterForId(tipster);
@@ -121,6 +142,31 @@ export default function TipsterApprovals() {
     });
   };
 
+  const getStatusBadge = (status: string) => {
+    switch (status) {
+      case 'pending':
+        return <Badge color="warning" size="sm">Pending</Badge>;
+      case 'approved':
+        return <Badge color="success" size="sm">Approved</Badge>;
+      case 'rejected':
+        return <Badge color="error" size="sm">Rejected</Badge>;
+      default:
+        return <Badge color="light" size="sm">Unknown</Badge>;
+    }
+  };
+
+  const handleTabChange = (tab: TabType) => {
+    setActiveTab(tab);
+    setPagination(prev => ({ ...prev, current_page: 1 }));
+    setError('');
+  };
+
+  const tabs = [
+    { id: 'pending' as TabType, label: 'Pending', count: activeTab === 'pending' ? pagination.total : null },
+    { id: 'approved' as TabType, label: 'Approved', count: activeTab === 'approved' ? pagination.total : null },
+    { id: 'rejected' as TabType, label: 'Rejected', count: activeTab === 'rejected' ? pagination.total : null },
+  ];
+
   return (
     <>
       <PageMeta title="Tipster Approvals - Pweza Admin" />
@@ -133,149 +179,268 @@ export default function TipsterApprovals() {
               Tipster Approvals
             </h1>
             <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
-              Review and approve pending tipster registrations
+              Review and manage tipster registration approvals
             </p>
-          </div>
-          <div className="flex items-center gap-2">
-            <Badge color="warning" variant="light" className="text-sm">
-              {pagination.total} Pending
-            </Badge>
           </div>
         </div>
 
-        {/* Search */}
-        <div className="flex flex-col sm:flex-row gap-4">
-          <div className="flex-1">
-            <Input
-              placeholder="Search by name or phone number..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full"
-            />
+        {/* Tabs */}
+        <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-1">
+          <div className="flex items-center gap-1">
+            {tabs.map((tab) => (
+              <button
+                key={tab.id}
+                onClick={() => handleTabChange(tab.id)}
+                className={`flex-1 px-4 py-3 text-sm font-medium rounded-lg transition-all ${
+                  activeTab === tab.id
+                    ? 'bg-brand-500 text-white shadow-sm'
+                    : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-gray-700'
+                }`}
+              >
+                <div className="flex items-center justify-center gap-2">
+                  <span>{tab.label}</span>
+                  {tab.count !== null && tab.count > 0 && (
+                    <span className={`px-2 py-0.5 rounded-full text-xs ${
+                      activeTab === tab.id
+                        ? 'bg-white/20 text-white'
+                        : 'bg-gray-200 dark:bg-gray-700 text-gray-600 dark:text-gray-400'
+                    }`}>
+                      {tab.count}
+                    </span>
+                  )}
+                </div>
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {/* Search and Filters */}
+        <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-6">
+          <div className="flex flex-col sm:flex-row gap-4">
+            <div className="flex-1">
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                Search Tipsters
+              </label>
+              <Input
+                placeholder="Search by name or phone number..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="w-full"
+              />
+            </div>
+            <div className="flex items-end gap-2">
+              <Button 
+                onClick={() => fetchTipsters(pagination.current_page)} 
+                className="flex-1"
+              >
+                Search
+              </Button>
+              {searchTerm && (
+                <Button 
+                  onClick={() => {
+                    setSearchTerm('');
+                    fetchTipsters(1);
+                  }} 
+                  variant="outline" 
+                  className="px-3"
+                >
+                  Clear
+                </Button>
+              )}
+            </div>
           </div>
         </div>
 
         {/* Error Message */}
         {error && (
           <div className="p-4 text-red-600 bg-red-50 border border-red-200 rounded-lg dark:bg-red-900/20 dark:border-red-800 dark:text-red-400">
-            {error}
+            <button
+              onClick={() => setError('')}
+              className="float-right text-red-400 hover:text-red-600 dark:hover:text-red-300"
+            >
+              ×
+            </button>
+            <p className="pr-6">{error}</p>
           </div>
         )}
 
         {/* Loading State */}
-        {isLoading ? (
-          <div className="flex justify-center items-center py-12">
+        {isLoading && tipsters.length === 0 ? (
+          <div className="flex justify-center items-center py-12 bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700">
             <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-brand-500"></div>
           </div>
         ) : tipsters.length === 0 ? (
           <div className="text-center py-12 bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700">
             <UserCircleIcon className="w-16 h-16 mx-auto text-gray-400 mb-4" />
             <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">
-              No Pending Approvals
+              No {activeTab === 'pending' ? 'Pending' : activeTab === 'approved' ? 'Approved' : 'Rejected'} Tipsters
             </h3>
             <p className="text-gray-600 dark:text-gray-400">
-              All tipster registrations have been processed.
+              {activeTab === 'pending' 
+                ? 'All tipster registrations have been processed.'
+                : `No ${activeTab} tipsters found.`}
             </p>
           </div>
         ) : (
           <>
-            {/* Tipsters Grid */}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {tipsters.map((tipster) => (
-                <div
-                  key={tipster.id}
-                  className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-6 hover:shadow-lg transition-shadow"
-                >
-                  <div className="flex items-start justify-between mb-4">
-                    <div className="flex items-center gap-3">
-                      <div className="w-12 h-12 rounded-full bg-gradient-to-br from-brand-500 to-brand-600 flex items-center justify-center text-white font-bold text-lg">
-                        {tipster.name.charAt(0).toUpperCase()}
-                      </div>
-                      <div>
-                        <h3 className="font-semibold text-gray-900 dark:text-white">
-                          {tipster.name}
-                        </h3>
-                        <p className="text-sm text-gray-600 dark:text-gray-400">
-                          {tipster.phone_number}
-                        </p>
-                      </div>
-                    </div>
-                    <Badge color="warning" variant="light">Pending</Badge>
-                  </div>
-
-                  <div className="space-y-2 mb-4">
-                    <div className="flex items-center justify-between text-sm">
-                      <span className="text-gray-600 dark:text-gray-400">Registered:</span>
-                      <span className="text-gray-900 dark:text-white font-medium">
-                        {formatDate(tipster.created_at)}
-                      </span>
-                    </div>
-                    {tipster.admin_notes && (
-                      <div className="p-2 bg-yellow-50 dark:bg-yellow-900/20 rounded text-sm text-yellow-800 dark:text-yellow-200">
-                        <strong>Note:</strong> {tipster.admin_notes}
-                      </div>
-                    )}
-                  </div>
-
-                  <div className="flex gap-2">
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => handleViewIdDocument(tipster)}
-                      className="flex-1"
-                    >
-                      <EyeIcon className="w-4 h-4 mr-2" />
-                      View ID
-                    </Button>
-                    <Button
-                      variant="success"
-                      size="sm"
-                      onClick={() => handleAction(tipster, 'approve')}
-                      className="flex-1"
-                    >
-                      Approve
-                    </Button>
-                    <Button
-                      variant="danger"
-                      size="sm"
-                      onClick={() => handleAction(tipster, 'reject')}
-                      className="flex-1"
-                    >
-                      Reject
-                    </Button>
-                  </div>
-                </div>
-              ))}
-            </div>
-
-            {/* Pagination */}
-            {pagination.last_page > 1 && (
-              <div className="flex items-center justify-between bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-4">
-                <div className="text-sm text-gray-600 dark:text-gray-400">
-                  Showing {((pagination.current_page - 1) * pagination.per_page) + 1} to{' '}
-                  {Math.min(pagination.current_page * pagination.per_page, pagination.total)} of{' '}
-                  {pagination.total} tipsters
-                </div>
-                <div className="flex gap-2">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => fetchTipsters(pagination.current_page - 1)}
-                    disabled={pagination.current_page === 1}
-                  >
-                    Previous
-                  </Button>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => fetchTipsters(pagination.current_page + 1)}
-                    disabled={pagination.current_page === pagination.last_page}
-                  >
-                    Next
-                  </Button>
-                </div>
+            {/* Tipsters Table */}
+            <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 overflow-hidden">
+              <div className="overflow-x-auto">
+                <table className="w-full">
+                  <thead className="bg-gray-50 dark:bg-gray-700">
+                    <tr>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider dark:text-gray-300">
+                        Tipster
+                      </th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider dark:text-gray-300">
+                        Contact
+                      </th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider dark:text-gray-300">
+                        Status
+                      </th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider dark:text-gray-300">
+                        Registered
+                      </th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider dark:text-gray-300">
+                        Admin Notes
+                      </th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider dark:text-gray-300">
+                        Actions
+                      </th>
+                    </tr>
+                  </thead>
+                  <tbody className="bg-white divide-y divide-gray-200 dark:bg-gray-800 dark:divide-gray-700">
+                    {tipsters.map((tipster) => (
+                      <tr key={tipster.id} className="hover:bg-gray-50 dark:hover:bg-gray-700">
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <div className="flex items-center">
+                            <div className="flex-shrink-0 h-10 w-10">
+                              <div className="h-10 w-10 rounded-full bg-gradient-to-br from-brand-500 to-brand-600 flex items-center justify-center text-white font-bold text-lg">
+                                {tipster.name.charAt(0).toUpperCase()}
+                              </div>
+                            </div>
+                            <div className="ml-4">
+                              <div className="text-sm font-medium text-gray-900 dark:text-white">
+                                {tipster.name}
+                              </div>
+                              <div className="text-sm text-gray-500 dark:text-gray-400">
+                                ID: {tipster.id}
+                              </div>
+                            </div>
+                          </div>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <div className="text-sm text-gray-900 dark:text-white">
+                            {tipster.phone_number}
+                          </div>
+                          {tipster.email && (
+                            <div className="text-sm text-gray-500 dark:text-gray-400">
+                              {tipster.email}
+                            </div>
+                          )}
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          {getStatusBadge(tipster.status)}
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <div className="text-sm text-gray-900 dark:text-white">
+                            {formatDate(tipster.created_at)}
+                          </div>
+                        </td>
+                        <td className="px-6 py-4">
+                          <div className="text-sm text-gray-900 dark:text-white max-w-xs truncate">
+                            {tipster.admin_notes || (
+                              <span className="text-gray-400 italic">No notes</span>
+                            )}
+                          </div>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                          <div className="flex items-center gap-2">
+                            {tipster.status === 'pending' && (
+                              <>
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  onClick={() => handleViewIdDocument(tipster)}
+                                >
+                                  <EyeIcon className="w-4 h-4 mr-1" />
+                                  View ID
+                                </Button>
+                                <Button
+                                  size="sm"
+                                  variant="success"
+                                  onClick={() => handleAction(tipster, 'approve')}
+                                >
+                                  Approve
+                                </Button>
+                                <Button
+                                  size="sm"
+                                  variant="danger"
+                                  onClick={() => handleAction(tipster, 'reject')}
+                                >
+                                  Reject
+                                </Button>
+                              </>
+                            )}
+                            {tipster.status === 'approved' && (
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                onClick={() => handleViewIdDocument(tipster)}
+                              >
+                                <EyeIcon className="w-4 h-4 mr-1" />
+                                View ID
+                              </Button>
+                            )}
+                            {tipster.status === 'rejected' && (
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                onClick={() => handleViewIdDocument(tipster)}
+                              >
+                                <EyeIcon className="w-4 h-4 mr-1" />
+                                View ID
+                              </Button>
+                            )}
+                          </div>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
               </div>
-            )}
+
+              {/* Pagination */}
+              {pagination.last_page > 1 && (
+                <div className="px-6 py-3 bg-gray-50 dark:bg-gray-700 border-t border-gray-200 dark:border-gray-600">
+                  <div className="flex items-center justify-between">
+                    <div className="text-sm text-gray-700 dark:text-gray-300">
+                      Showing {((pagination.current_page - 1) * pagination.per_page) + 1} to{' '}
+                      {Math.min(pagination.current_page * pagination.per_page, pagination.total)} of{' '}
+                      {pagination.total} tipsters
+                    </div>
+                    <div className="flex space-x-2">
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        disabled={pagination.current_page === 1}
+                        onClick={() => fetchTipsters(pagination.current_page - 1)}
+                      >
+                        Previous
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        disabled={pagination.current_page === pagination.last_page}
+                        onClick={() => fetchTipsters(pagination.current_page + 1)}
+                      >
+                        Next
+                      </Button>
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
           </>
         )}
       </div>
@@ -423,4 +588,3 @@ export default function TipsterApprovals() {
     </>
   );
 }
-
