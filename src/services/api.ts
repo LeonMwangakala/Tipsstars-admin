@@ -1,7 +1,20 @@
 // Get API URL from environment variable, fallback to production URL
 const getApiBaseUrl = (): string => {
   // Vite exposes env variables with VITE_ prefix
-  return import.meta.env.VITE_API_BASE_URL || 'https://api.tipsstars.com/api';
+  let baseUrl = import.meta.env.VITE_API_BASE_URL || 'https://api.tipsstars.com/api';
+  
+  // Ensure the URL ends with /api
+  // Remove trailing slash if present
+  baseUrl = baseUrl.replace(/\/$/, '');
+  
+  // If it doesn't end with /api, add it
+  if (!baseUrl.endsWith('/api')) {
+    // If it ends with just /, remove it first
+    baseUrl = baseUrl.replace(/\/$/, '');
+    baseUrl = baseUrl + '/api';
+  }
+  
+  return baseUrl;
 };
 
 const getApiOrigin = (): string => {
