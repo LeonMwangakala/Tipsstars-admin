@@ -399,11 +399,6 @@ export default function TipsterApprovals() {
                           <div className="text-sm text-gray-900 dark:text-white">
                             {tipster.phone_number}
                           </div>
-                          {tipster.email && (
-                            <div className="text-sm text-gray-500 dark:text-gray-400">
-                              {tipster.email}
-                            </div>
-                          )}
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap">
                           {getStatusBadge(tipster.status)}
@@ -429,7 +424,6 @@ export default function TipsterApprovals() {
                                   variant="outline"
                                   onClick={() => handleViewIdDocument(tipster)}
                                   className="flex items-center justify-center"
-                                  title="View ID Document"
                                 >
                                   <FaEye className="w-4 h-4" />
                                   <span className="sr-only">View ID Document</span>
@@ -439,7 +433,6 @@ export default function TipsterApprovals() {
                                   variant="success"
                                   onClick={() => handleAction(tipster, 'approve')}
                                   className="flex items-center justify-center"
-                                  title="Approve Tipster"
                                 >
                                   <FaCheckCircle className="w-4 h-4" />
                                   <span className="sr-only">Approve</span>
@@ -449,7 +442,6 @@ export default function TipsterApprovals() {
                                   variant="danger"
                                   onClick={() => handleAction(tipster, 'reject')}
                                   className="flex items-center justify-center"
-                                  title="Reject Tipster"
                                 >
                                   <FaTimes className="w-4 h-4" />
                                   <span className="sr-only">Reject</span>
@@ -462,7 +454,6 @@ export default function TipsterApprovals() {
                                 variant="outline"
                                 onClick={() => handleViewIdDocument(tipster)}
                                 className="flex items-center justify-center"
-                                title="View ID Document"
                               >
                                 <FaEye className="w-4 h-4" />
                                 <span className="sr-only">View ID Document</span>
@@ -474,7 +465,6 @@ export default function TipsterApprovals() {
                                 variant="outline"
                                 onClick={() => handleViewIdDocument(tipster)}
                                 className="flex items-center justify-center"
-                                title="View ID Document"
                               >
                                 <FaEye className="w-4 h-4" />
                                 <span className="sr-only">View ID Document</span>
@@ -663,8 +653,7 @@ export default function TipsterApprovals() {
               <Button
                 type="button"
                 variant={actionType === 'approve' ? 'success' : 'danger'}
-                onClick={(e) => {
-                  e.preventDefault();
+                onClick={() => {
                   handleActionSubmit();
                 }}
                 disabled={actionLoading || (actionType === 'reject' && !actionNotes.trim())}

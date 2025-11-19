@@ -41,7 +41,6 @@ const WithdrawalsList: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<StatusTabType>('all');
   const [currentPage, setCurrentPage] = useState(1);
-  const [totalPages, setTotalPages] = useState(1);
   const [pagination, setPagination] = useState({
     current_page: 1,
     last_page: 1,
@@ -87,7 +86,6 @@ const WithdrawalsList: React.FC = () => {
       setWithdrawals(response.data);
       setSummary(response.summary);
       setPagination(response.pagination);
-      setTotalPages(response.pagination.last_page);
     } catch (error: any) {
       setError(error.message || 'Failed to fetch withdrawals');
     } finally {
@@ -478,8 +476,7 @@ const WithdrawalsList: React.FC = () => {
                   <Button
                     type="button"
                     variant={actionModal === 'paid' ? 'success' : 'danger'}
-                    onClick={(e) => {
-                      e.preventDefault();
+                    onClick={() => {
                       handleAction();
                     }}
                     disabled={loading || (actionModal === 'reject' && !actionNotes.trim())}

@@ -11,9 +11,9 @@ export const useAutoLogout = () => {
   const [showWarning, setShowWarning] = useState(false);
   const [countdown, setCountdown] = useState(30);
   const lastActivityRef = useRef<number>(Date.now());
-  const warningTimerRef = useRef<NodeJS.Timeout | null>(null);
-  const countdownTimerRef = useRef<NodeJS.Timeout | null>(null);
-  const inactivityTimerRef = useRef<NodeJS.Timeout | null>(null);
+  const warningTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const countdownTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const inactivityTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const resetTimers = useCallback(() => {
     // Clear existing timers
