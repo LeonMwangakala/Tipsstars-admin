@@ -29,6 +29,11 @@ const getApiOrigin = (): string => {
 const API_BASE_URL = getApiBaseUrl();
 export const API_ORIGIN = getApiOrigin();
 
+// Debug: Log the API base URL (only in development)
+if (import.meta.env.DEV) {
+  console.log('API_BASE_URL:', API_BASE_URL);
+}
+
 export interface LoginRequest {
   phone_number: string;
   password: string;
@@ -221,7 +226,19 @@ class ApiService {
 
   // Authentication
   async login(data: LoginRequest): Promise<LoginResponse> {
-    const response = await fetch(`${API_BASE_URL}/admin/login`, {
+    // Construct the login URL - ensure it always has /api/admin/login
+    let loginUrl: string;
+    if (API_BASE_URL.endsWith('/api')) {
+      loginUrl = `${API_BASE_URL}/admin/login`;
+    } else if (API_BASE_URL.endsWith('/api/')) {
+      loginUrl = `${API_BASE_URL}admin/login`;
+    } else {
+      // If base URL doesn't end with /api, add it
+      const base = API_BASE_URL.replace(/\/$/, ''); // Remove trailing slash
+      loginUrl = `${base}/api/admin/login`;
+    }
+    
+    const response = await fetch(loginUrl, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
