@@ -1,7 +1,8 @@
 import { useState } from "react";
 import { apiService } from "../../services/api";
 import PageMeta from "../../components/common/PageMeta";
-import { ChatIcon, ArrowRightIcon } from "../../icons";
+import { ChatIcon } from "../../icons";
+import { FaPaperPlane, FaTimes } from "react-icons/fa";
 import Button from "../../components/ui/button/Button";
 import Input from "../../components/form/input/InputField";
 
@@ -89,8 +90,17 @@ export default function NotificationsList() {
           onClick={() => setShowForm(!showForm)}
           className="flex items-center gap-2"
         >
-          <ArrowRightIcon className="w-4 h-4" />
-          {showForm ? 'Cancel' : 'Send New Notification'}
+          {showForm ? (
+            <>
+              <FaTimes className="w-4 h-4" />
+              Cancel
+            </>
+          ) : (
+            <>
+              <FaPaperPlane className="w-4 h-4" />
+              Send New Notification
+            </>
+          )}
         </Button>
       </div>
 
@@ -183,7 +193,7 @@ export default function NotificationsList() {
                   </>
                 ) : (
                   <>
-                    <ArrowRightIcon className="w-4 h-4" />
+                    <FaPaperPlane className="w-4 h-4" />
                     Send Notification
                   </>
                 )}
