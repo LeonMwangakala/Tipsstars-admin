@@ -1,7 +1,7 @@
 import { useEffect, useState, useRef } from "react";
 import { apiService, Tipster, CommissionConfig } from "../../services/api";
 import PageMeta from "../../components/common/PageMeta";
-import { UserCircleIcon, PencilIcon } from "../../icons";
+import { UserCircleIcon, PencilIcon, EyeIcon, TrashBinIcon } from "../../icons";
 import Badge from "../../components/ui/badge/Badge";
 import Button from "../../components/ui/button/Button";
 import Input from "../../components/form/input/InputField";
@@ -268,60 +268,46 @@ export default function TipstersList() {
   };
 
   const getActionButtons = (tipster: Tipster) => {
-    const buttons = [];
-    
-    if (tipster.status === 'pending') {
-      buttons.push(
-        <Button
-          key="approve"
-          size="sm"
-          variant="outline"
-          onClick={() => handleAction(tipster, 'approve')}
-        >
-          Approve
-        </Button>
-      );
-      buttons.push(
-        <Button
-          key="reject"
-          size="sm"
-          variant="outline"
-          onClick={() => handleAction(tipster, 'reject')}
-        >
-          Reject
-        </Button>
-      );
-    } else if (tipster.status === 'approved') {
-      buttons.push(
-        <Button
-          key="revoke"
-          size="sm"
-          variant="outline"
-          onClick={() => handleAction(tipster, 'revoke')}
-        >
-          Revoke
-        </Button>
-      );
-    }
-    
-    // Add view ID button for pending tipsters
-    if (tipster.status === 'pending') {
-      buttons.push(
-        <Button
-          key="view-id"
-          size="sm"
-          variant="outline"
-          onClick={() => {
-            // TODO: Implement view ID functionality
-            console.log('View ID for tipster:', tipster.id);
-          }}
-        >
-          View ID
-        </Button>
-      );
-    }
-    
-    return buttons;
+    return [
+      // Revoke button (icon only)
+      <Button
+        key="revoke"
+        size="sm"
+        variant="outline"
+        onClick={() => handleAction(tipster, "revoke")}
+        className="flex items-center justify-center"
+      >
+        <TrashBinIcon className="w-4 h-4" />
+        <span className="sr-only">Revoke tipster</span>
+      </Button>,
+
+      // Edit button (icon only)
+      <Button
+        key="edit"
+        size="sm"
+        variant="outline"
+        onClick={() => handleEdit(tipster)}
+        className="flex items-center justify-center"
+      >
+        <PencilIcon className="w-4 h-4" />
+        <span className="sr-only">Edit tipster</span>
+      </Button>,
+
+      // View ID button (icon only)
+      <Button
+        key="view-id"
+        size="sm"
+        variant="outline"
+        onClick={() => {
+          // TODO: Implement view ID functionality or navigate to approvals page
+          console.log("View ID for tipster:", tipster.id);
+        }}
+        className="flex items-center justify-center"
+      >
+        <EyeIcon className="w-4 h-4" />
+        <span className="sr-only">View ID document</span>
+      </Button>,
+    ];
   };
 
   const renderCommissionDetails = (tipster: Tipster) => {
@@ -802,13 +788,6 @@ export default function TipstersList() {
                     <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
                       <div className="flex space-x-2">
                         {getActionButtons(tipster)}
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          onClick={() => handleEdit(tipster)}
-                        >
-                          <PencilIcon className="w-4 h-4" />
-                        </Button>
                       </div>
                     </td>
                   </tr>
